@@ -31,7 +31,7 @@ Procedure CreateApplicat(Head: PProgram; XL: Variant);
 Procedure CreateStarted(Head: PPRogram; XL: Variant);
 Function FindKeyWord(Name: String; FData: OLEVariant; RowCount, ColCount: Integer; ByRows: Boolean): Integer;
 Function CreateDistHeader(Sex: TSex; SYear: TSYear; Meters: TMeters; Style: TStyles): String;
-Procedure CreateFinish(Head: PProgram; XL: Variant);
+Procedure CreateFinish(Head: PProgram; XL: Variant; FINA: Boolean = False);
 
 implementation
 
@@ -300,13 +300,13 @@ Begin
 End;
 
 //creating finish protocol
-Procedure CreateFinish(Head: PProgram; XL: Variant);
+Procedure CreateFinish(Head: PProgram; XL: Variant; FINA: Boolean = False);
 Var
   Dist: PProgram;
   Summary: PSummaryList;
   Swimmer: PSwimmer;
   SwimmerPoint: PSwimmerPoint;
-  I, StartRow, CurrRow, SwimmerCount, Points: Integer;
+  I, StartRow, CurrRow, SwimmerCount, Points, FINAPts: Integer;
   Header: String;
   strDist, strPoints: Array of String;
 Begin
@@ -339,16 +339,27 @@ Begin
     //adding swimmers to a Excel table
     While Swimmer<>Nil do
     Begin
+
+      //calculating old points
       If (SwimmerCount>High(uFinish.TPointCount)) or (Swimmer^.STime=strDSQ) then
         Points:=0
       Else
         Points:=uFinish.Points[SwimmerCount];
 
+      //calcuating FINA points
+      FINAPts:=uFinish.FINAPoints(Dist^.Sex,Dist^.Meters,Dist^.Style,Swimmer^.STime);
+
       If Swimmer^.STime=strDSQ then
         Swimmer^.STime:='диск.';
 
-      AddSwimmer(XL,1,CurrRow,[IntToStr(SwimmerCount),Swimmer^.Name,Swimmer^.Year,Swimmer^.City,Swimmer^.STime],[IntToStr(Points)]);
-      uFinish.AddSwimmerPoint(uFinish.SummaryList,Dist,Swimmer,Points);
+      uFinish.AddSwimmerPoint(uFinish.SummaryList,Dist,Swimmer,Points,FINAPts);
+
+      //adding swimmer to Excel table
+      If FINA then
+        AddSwimmer(XL,1,CurrRow,[IntToStr(SwimmerCount),Swimmer^.Name,Swimmer^.Year,Swimmer^.City,Swimmer^.STime],[IntToStr(FINAPts)])
+      Else
+        AddSwimmer(XL,1,CurrRow,[IntToStr(SwimmerCount),Swimmer^.Name,Swimmer^.Year,Swimmer^.City,Swimmer^.STime],[IntToStr(Points)]);
+
       Swimmer:=Swimmer^.Next;
       Inc(SwimmerCount);
     End;
@@ -380,7 +391,7 @@ Begin
   Begin
 
     //sort swimmer points
-    uFinish.SortPoints(Summary^.SwimmerPoint);
+    uFinish.SortPoints(Summary^.SwimmerPoint,FINA);
 
     //adding distance header
     StartRow:=CurrRow+1;
@@ -401,8 +412,16 @@ Begin
       Points:=0;
       For I:=Low(SwimmerPoint^.Point) to High(SwimmerPoint^.Point) do
       Begin
-        Points:=Points+SwimmerPoint^.Point[I];
-        strPoints[I]:=IntToStr(SwimmerPoint^.Point[I]);
+        If FINA then
+        Begin
+          Points:=Points+SwimmerPoint^.FINAPoint[I];
+          strPoints[I]:=IntToStr(SwimmerPoint^.FINAPoint[I]);
+        End
+        Else
+        Begin
+          Points:=Points+SwimmerPoint^.Point[I];
+          strPoints[I]:=IntToStr(SwimmerPoint^.Point[I]);
+        End;
       End;
       strPoints[High(strPoints)]:=IntToStr(Points);
 

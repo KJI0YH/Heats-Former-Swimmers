@@ -35,7 +35,7 @@ type
     actCreateApplicat: TAction;
     actDeleteItem: TAction;
     actSaveFinish: TAction;
-    acrCreateFinish: TAction;
+    actCreateFinish: TAction;
     actOpenStarted: TAction;
 
     SaveProgram: TSaveDialog;
@@ -112,6 +112,8 @@ type
     N12: TMenuItem;
     N13: TMenuItem;
     Excel2: TMenuItem;
+    pnlFinishOLD: TPanel;
+    btnCreateFinishFINA: TButton;
 
     procedure FormCreate(Sender: TObject);
     procedure actCheckAddExecute(Sender: TObject);
@@ -127,7 +129,7 @@ type
     procedure actCreateStartedExecute(Sender: TObject);
     procedure actCreateApplicatExecute(Sender: TObject);
     procedure actOpenStartedExecute(Sender: TObject);
-    procedure acrCreateFinishExecute(Sender: TObject);
+    procedure actCreateFinishExecute(Sender: TObject);
     procedure actSaveFinishExecute(Sender: TObject);
     procedure lvProgramCompare(Sender: TObject; Item1, Item2: ComCtrls.TListItem; Data: Integer; var Compare: Integer);
     procedure lvProgramSelectItem(Sender: TObject; Item: TListItem; Selected: Boolean);
@@ -710,7 +712,7 @@ begin
 end;
 
 //creating finish protocol
-procedure TfrmMain.acrCreateFinishExecute(Sender: TObject);
+procedure TfrmMain.actCreateFinishExecute(Sender: TObject);
 Var
   XL: Variant;
 begin
@@ -726,7 +728,7 @@ begin
   OleFinish.CreateObject('Excel.Sheet', True);
   XL:=OleFinish.OleObject;
 
-  uExcel.CreateFinish(uProgram.ProgramHead,XL);
+  uExcel.CreateFinish(uProgram.ProgramHead,XL,Sender=frmMain.btnCreateFinishFINA);
 
   pbProgress.Position:=pbProgress.Max;
   Sleep(300);

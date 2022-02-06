@@ -310,7 +310,8 @@ Var
   Header: String;
   strDist, strPoints: Array of String;
 Begin
-
+  uFinish.ClearSummary(uFinish.SummaryList);
+  
   //creating finish protocol
   XL.WorkSheets[1].Name:='Итоговый протокол';
 

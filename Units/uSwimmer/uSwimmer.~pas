@@ -53,6 +53,7 @@ Const
 
 Var
   UnSortList: TUnsortList;
+  strInfinity: TName = '99.99.99';
 
 Procedure AddSwimmer(Var Head: PSwimmer; Name, Year, City, STime: TName; DistInd: Integer);
 Procedure AddToUnSort(Var Head: PSwimmer; Name, Year, City, STime: TName; DistInd: Integer);
@@ -74,7 +75,7 @@ Begin
     Delete(Line, Length(Line), 1);
   While (Length(Line)>0) and ((Line[Length(Line)]>='0') and (Line[Length(Line)]<='9')) do
   Begin
-    Result:=Line[Length(Line)]+ Result;
+    Result:=Line[Length(Line)]+Result;
     Delete(Line, Length(Line), 1);
   End;
   If Result='' then
@@ -134,7 +135,7 @@ Begin
   If STime='' then Exit;
   Time:=ConvertTime(STime);
   If STime='00.00' then
-    Time:=ConvertTime('99.99.99');
+    Time:=ConvertTime(strInfinity);
   CurrentTime:=GetMillisec(Time);
 
   //create header

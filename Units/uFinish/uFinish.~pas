@@ -5,7 +5,7 @@ finish protocol}
 interface
 
 Uses
-  uSwimmer, uProgram, Variants, ComObj;
+  uSwimmer, uProgram, Variants, ComObj, Math;
 
 Type
 
@@ -14,6 +14,7 @@ Type
   TSwimmerPoint = Record
     Swimmer: PSwimmer;
     Point: TDistPoint;
+    FINAPoint: TDistPoint;
     Next: PSwimmerPoint;
   End;
 
@@ -28,6 +29,8 @@ Type
   TPointCount = 1..20;
   TPoints = Array [TPointCount] of Integer;
 
+  TFINAWR = Array [TSex, TMeters, TStyles] of TName;
+
 Const
   Points: TPoints = (50,45,40,36,32,28,25,22,19,16,14,12,10,8,6,5,4,3,2,1);
 
@@ -36,11 +39,33 @@ Const
 Var
   SummaryList: PSummaryList = Nil;
 
+                          //male
+  FINAWR: TFINAWR =      ((//fly       //back       //breast    //free      //medley
+                          ('',         '',          '',         '',         ''),         //25m
+                          ('21.75',    '22.22',     '24.95',    '20.16',    ''),         //50m
+                          ('47.78',    '48.33',     '55.28',    '44.48',    '49.28'),    //100m
+                          ('1.48.24',  '1.45.63',   '2.00.16',  '1.39.37',  '1.49.63'),  //200m
+                          ('',         '',          '',         '3.32.25',  '3.54.81'),  //400m
+                          ('',         '',          '',         '7.23.42',  ''),         //800m
+                          ('',         '',          '',         '14.06.88', '')          //1500m
+  ),
+                          //female
+                          (//fly       //back       //breast    //free      //medley
+                          ('',         '',          '',         '',         ''),         //25m
+                          ('24.38',    '25.27',     '28.56',    '22.93',    ''),         //50m
+                          ('54.59',    '54.89',     '1.02.36',  '50.25',    '56.51'),    //100m
+                          ('1.59.61',  '1.58.94',   '2.14.57',  '1.50.31',  '2.01.86'),  //200m
+                          ('',         '',          '',         '3.53.92',  '4.18.94'),  //400m
+                          ('',         '',          '',         '7.59.34',  ''),         //800m
+                          ('',         '',          '',         '15.18.01', '')          //1500m
+  ));
+
 Procedure ReadStarted(FileName: String; Var ProgramHead: PProgram);
 Procedure AddSummary(Var SummaryList: PSummaryList; Dist: PProgram);
-Procedure AddSwimmerPoint(Var SummaryList: PSummaryList; Dist: PProgram; Swimmer: PSwimmer; Point: Integer);
-Procedure SortPoints(Var Head: PSwimmerPoint);
+Procedure AddSwimmerPoint(Var SummaryList: PSummaryList; Dist: PProgram; Swimmer: PSwimmer; Point, FINAPoint: Integer);
+Procedure SortPoints(Var Head: PSwimmerPoint; FINA: Boolean = False);
 Procedure ClearSummary(Var SummaryList: PSummaryList);
+Function FINAPoints(Sex: TSex; Meters: TMeters; Style: TStyles; STime: TName): Integer;
 
 implementation
 
@@ -54,6 +79,20 @@ uses uError, uTechnical, uExcel, uApplicat, uMain;
 Function Equal(Swimmer1, Swimmer2: PSwimmer): Boolean;
 Begin
   Result:=(Swimmer1^.Name=Swimmer2^.Name) and (Swimmer1^.City=Swimmer2^.City);
+End;
+
+//get points summary
+Function GetPoints(SwimmerPoint: PSwimmerPoint; FINA: Boolean): Integer;
+Var
+  I: Integer;
+Begin
+  Result:=0;
+  If FINA then
+    For I:=Low(SwimmerPoint^.FINAPoint) to High(SwimmerPoint^.FINAPoint) do
+      Result:=Result+SwimmerPoint^.FINAPoint[I]
+  Else
+    For I:=Low(SwimmerPoint^.Point) to High(SwimmerPoint^.Point) do
+      Result:=Result+SwimmerPoint^.Point[I];
 End;
 
 //clearing swimmerpoint list
@@ -218,7 +257,7 @@ Begin
 End;
 
 //add swimmer and point for the distation
-Procedure AddSwimmerPoint(Var SummaryList: PSummaryList; Dist: PProgram; Swimmer: PSwimmer; Point: Integer);
+Procedure AddSwimmerPoint(Var SummaryList: PSummaryList; Dist: PProgram; Swimmer: PSwimmer; Point, FINAPoint: Integer);
 Var
   Current: PSummaryList;
   CurrSwimmer: PSwimmerPoint;
@@ -245,6 +284,7 @@ Begin
       Begin
         Found:=True;
         CurrSwimmer^.Point[uProgram.GetDistInd(Dist^.Meters,Dist^.Style)]:=Point;
+        CurrSwimmer^.FINAPoint[uProgram.GetDistInd(Dist^.Meters,Dist^.Style)]:=FINAPoint;
       End
       Else
         CurrSwimmer:=CurrSwimmer^.Next;
@@ -255,25 +295,17 @@ Begin
         New(CurrSwimmer);
         CurrSwimmer^.Swimmer:=Swimmer;
         SetLength(CurrSwimmer^.Point,Length(uProgram.DistList));
+        SetLength(CurrSwimmer^.FINAPoint,Length(uProgram.DistList));
         CurrSwimmer^.Point[uProgram.GetDistInd(Dist^.Meters,Dist^.Style)]:=Point;
+        CurrSwimmer^.FINAPoint[uProgram.GetDistInd(Dist^.Meters,Dist^.Style)]:=FINAPoint;
         CurrSwimmer^.Next:=Current^.SwimmerPoint;
         Current^.SwimmerPoint:=CurrSwimmer;
       End;
   End;
 End;
 
-//get points summary
-Function GetPoints(Point: TDistPoint): Integer;
-Var
-  I: Integer;
-Begin
-  Result:=0;
-  For I:=Low(Point) to High(Point) do
-    Result:=Result+Point[I];
-End;
-
 //sort swimmer points (selection sort)
-Procedure SortPoints(Var Head: PSwimmerPoint);
+Procedure SortPoints(Var Head: PSwimmerPoint; FINA: Boolean = False);
 Var
   I, J, Current: PSwimmerPoint;
   TempSwimmer: PSwimmer;
@@ -288,7 +320,7 @@ Begin
       J:=I^.Next;
       While J<>Nil do
       Begin
-        If GetPoints(J^.Point)>GetPoints(Current^.Point) then
+        If GetPoints(J,FINA)>GetPoints(Current,FINA) then
           Current:=J;
         J:=J^.Next;
       End;
@@ -302,6 +334,16 @@ Begin
     I^.Point:=TempPoint;
 
     I:=I^.Next;
+  End;
+End;
+
+//calculating FINA points
+Function FINAPoints(Sex: TSex; Meters: TMeters; Style: TStyles; STime: TName): Integer;
+Begin
+  try
+    Result:=Trunc(Power(uSwimmer.GetMillisec((uSwimmer.ConvertTime(FINAWR[Sex,Meters,Style])))/uSwimmer.GetMillisec(uSwimmer.ConvertTime(STime)),3)*1000);
+  except
+    Result:=0;
   End;
 End;
 

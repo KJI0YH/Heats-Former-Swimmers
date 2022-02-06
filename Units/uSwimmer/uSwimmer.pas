@@ -60,6 +60,8 @@ Procedure AddToUnSort(Var Head: PSwimmer; Name, Year, City, STime: TName; DistIn
 Function CreateHeat(Var Head: PSwimmer): PHeat;
 Procedure ClearHeatList(Head: PHeat);
 Procedure CreateUnsortList(Var UnsortList: TUnsortList; Len: Integer);
+Function GetMillisec(Time: TTime): Integer;
+Function ConvertTime(Var Time: TName): TTime;
 
 implementation
 
